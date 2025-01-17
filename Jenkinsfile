@@ -1,53 +1,51 @@
-#!groovy
+pipeline {
+   
+   agent any
 
-node {
-   // ------------------------------------
-   // -- ETAPA: Compilar
-   // ------------------------------------
-   stage 'Compilar'
-   
-   // -- Configura variables
-   echo 'Configurando variables'
-   def mvnHome = tool 'Maven3.15.1'
-   env.PATH = "${mvnHome}/bin:${env.PATH}"
-   echo "var mvnHome='${mvnHome}'"
-   echo "var env.PATH='${env.PATH}'"
-   
-   // -- Descarga código desde SCM
-   echo 'Descargando código de SCM'
-   sh 'rm -rf *'
-   checkout scm
-   
-   // -- Compilando
-   echo 'Compilando aplicación'
-   sh 'mvn clean compile'
-   
-   // ------------------------------------
-   // -- ETAPA: Test
-   // ------------------------------------
-   stage 'Test'
-   echo 'Ejecutando tests'
-   try{
-      sh 'mvn verify'
-      step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
-   }catch(err) {
-      step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])
-      if (currentBuild.result == 'UNSTABLE')
-         currentBuild.result = 'FAILURE'
-      throw err
+   tools {
+      jdk 'jdk_11' // Use the name you configured for JDK 11 in the Jenkins tools configuration
+      maven 'maven'
    }
-   
-   // ------------------------------------
-   // -- ETAPA: Instalar
-   // ------------------------------------
-   stage 'Instalar'
-   echo 'Instala el paquete generado en el repositorio maven'
-   sh 'mvn install -Dmaven.test.skip=true'
-   
-   // ------------------------------------
-   // -- ETAPA: Archivar
-   // ------------------------------------
-   stage 'Archivar'
-   echo 'Archiva el paquete el paquete generado en Jenkins'
-   step([$class: 'ArtifactArchiver', artifacts: '**/target/*.jar, **/target/*.war', fingerprint: true])
+
+   stages {
+        
+      stage('Checkout') {
+         steps {
+               // Checkout code from version control including submodules using the scm variable
+               checkout([
+                  $class: 'GitSCM', 
+                  branches: [[name: "${GIT_BRANCH}"]],
+                  extensions: [[$class: 'SubmoduleOption', recursiveSubmodules: true]], 
+                  userRemoteConfigs: scm.userRemoteConfigs
+               ])
+         }
+      }
+
+      stage('Build') {
+            steps {
+                sh 'mvn clean compile' // Remove the target directory and compile the code
+            }
+      }
+
+      stage('Test') {
+         steps {
+               script {
+                  sh 'mvn test' // Run the tests
+               }
+         }
+      }
+
+      stage('Package') {
+         steps {
+               sh 'mvn package' // Package the project (produces .jar or .war)
+         }
+      }
+
+      stage('Archive Artifacts') {
+         steps {
+            // Archive the generated artifacts
+            archiveArtifacts artifacts: 'target/*.jar, target/*.war', allowEmptyArchive: true
+         }
+      }
+   }
 }
