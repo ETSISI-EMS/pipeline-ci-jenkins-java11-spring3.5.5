@@ -29,7 +29,7 @@ az group create --name jenkinsems2026-rg --location spaincentral
 
 # creamos una máquina virtual
 az vm create \
-  --resource-group jenkinsems2026-jessica-rg \
+  --resource-group jenkinsems2026-rg \
   --name jenkinsems-vm-2026 \
   --image Ubuntu2204 \
   --admin-username jenkinsuser \
