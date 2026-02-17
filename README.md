@@ -49,7 +49,7 @@ ssh jenkinsuser@<ip>
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 ```
 
-## Resolución de problemas  
+## Resolución de problemas con la suscripción de Estudiantes 
 
 Las suscripciones de Estudiante de forma aleaotoria tienen limitaciones:
 - Limitación del tipo de suscripción/cuotas o del proveedor del recurso (Microsoft.Compute). Para comprobar las localizaciones disponibles:
@@ -79,3 +79,37 @@ az vm create \
   --size Standard_B2s_v2
   --location switzerlandnorth
 ```
+## Resolución de problemas con el servidor Jenkins
+Una vez estás conectado por ssh a la máquina donde has instalado Jenkins:
+
+1. Comprobar si el servicio está instalado Jenkins normalmente se ejecuta como un servicio:
+```SHELL
+systemctl status jenkins
+```
+Si está instalado, verás información del servicio (active, running, stopped, etc.).
+Si no está instalado, te dirá: Unit jenkins.service could not be found.
+
+2. Buscar el paquete instalado
+```SHELL
+dpkg -l | grep jenkins
+```
+Si aparece una línea con jenkins, está instalado mediante dpkg/apt.
+Si no aparece nada, probablemente no esté instalado por ese método.
+
+3. Comprobar si existe el ejecutable
+
+```SHELL
+which jenkins
+o
+whereis jenkins
+```
+Si devuelve una ruta (por ejemplo /usr/bin/jenkins), está instalado.
+Si no devuelve nada útil, no está instalado.
+
+4. Comprobar si el puerto por defecto está activo
+Jenkins suele ejecutarse en http://localhost:8080 Puedes verificar si algo está escuchando en ese puerto:
+```SHELL
+sudo lsof -i :8080
+```
+Si aparece un proceso llamado java o jenkins, entonces Jenkins está activo.
+
