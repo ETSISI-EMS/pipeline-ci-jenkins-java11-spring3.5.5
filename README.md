@@ -62,33 +62,7 @@ Las suscripciones de Estudiante de forma aleaotoria tienen limitaciones:
 todas las regiones “Physical” disponibles en tu suscripción y marcar si están permitidas por Policy (si no se encuentra ninguna allowlist, asume todas permitidas por policy):
 
 ```SHELL
-sub="$(az account show --query id -o tsv)"
-
-all="$(az account list-locations \
-  --query "[?metadata.regionType=='Physical'].{name:name,displayName:displayName}" -o json)"
-
-asg="$(az policy assignment list \
-  --subscription "$sub" \
-  --disable-scope-strict-match \
-  --query "[?enforcementMode=='Default' && parameters && (parameters.allowedLocations.value || parameters.listOfAllowedLocations.value)].{allowed:(parameters.allowedLocations.value || parameters.listOfAllowedLocations.value)}" \
-  -o json)"
-
-jq -n --argjson all "$all" --argjson asg "$asg" '
-  def intersect(a;b): [a[] | select(b|index(.))] | unique;
-
-  # saca todas las allowlists y calcula la intersección (lo más restrictivo)
-  ( [ $asg[].allowed ] | map(select(.!=null)) ) as $lists
-  | ( if ($lists|length)==0 then null
-      else reduce $lists[] as $l (null; if .==null then ($l|unique) else intersect(.; ($l|unique)) end)
-    end ) as $eff
-
-  | $all
-  | sort_by(.displayName)
-  | map(. + {permitted: (if $eff==null then true else ($eff|index(.name)!=null) end)})
-  | (["NAME","DISPLAY_NAME","PERMITTED"],
-     (map([.name,.displayName,(if .permitted then "YES" else "NO" end)])[]))
-  | @tsv
-' | column -t -s $'\t'
+az policy assignment list  --subscription $(az account show --query id -o tsv)  --query "[?parameters.listOfAllowedLocations.value!=null].parameters.listOfAllowedLocations.value[]"  -o tsv
 ```
 
 Una vez hemos determinado las localizaciones disponibles, podemos crear la MV indicando una de esas localizaciones permitidas, por ejemplo switzerlandnorth
