@@ -113,3 +113,7 @@ sudo lsof -i :8080
 ```
 Si aparece un proceso llamado java o jenkins, entonces Jenkins está activo.
 
+## Borrar grupo de recursos
+```SHELL
+az group delete -n jenkinsems2026-rg --yes --no-wait
+```
